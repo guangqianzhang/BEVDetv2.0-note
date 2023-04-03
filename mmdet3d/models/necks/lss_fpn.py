@@ -94,7 +94,7 @@ class FPN_LSS(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         if self.input_conv is not None:
             x = self.input_conv(x)
-        x = self.conv(x)
+        x = self.conv(x)  #
         if self.extra_upsample:
             x = self.up2(x)
-        return x
+        return x  # torch.Size([1, 256, 128, 128])

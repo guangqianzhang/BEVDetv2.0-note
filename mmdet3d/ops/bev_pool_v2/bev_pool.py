@@ -16,15 +16,15 @@ class QuickCumsumCuda(torch.autograd.Function):
     @staticmethod
     def forward(ctx, depth, feat, ranks_depth, ranks_feat, ranks_bev,
                 bev_feat_shape, interval_starts, interval_lengths):
-        ranks_bev = ranks_bev.int()
-        depth = depth.contiguous().float()
-        feat = feat.contiguous().float()
-        ranks_depth = ranks_depth.contiguous().int()
-        ranks_feat = ranks_feat.contiguous().int()
-        interval_lengths = interval_lengths.contiguous().int()
+        ranks_bev = ranks_bev.int()  # 转化为整型 # 192671
+        depth = depth.contiguous().float()  # 1 6 59 16 44
+        feat = feat.contiguous().float()  # 1 6 16 44 80
+        ranks_depth = ranks_depth.contiguous().int()  # 192671
+        ranks_feat = ranks_feat.contiguous().int()  # 192671
+        interval_lengths = interval_lengths.contiguous().int()  # 14309
         interval_starts = interval_starts.contiguous().int()
 
-        out = feat.new_zeros(bev_feat_shape)
+        out = feat.new_zeros(bev_feat_shape)  # 1 1 128 128 80
 
         bev_pool_v2_ext.bev_pool_v2_forward(
             depth,

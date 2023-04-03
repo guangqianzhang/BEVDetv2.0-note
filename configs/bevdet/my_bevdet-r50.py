@@ -4,7 +4,7 @@ _base_ = ['../_base_/datasets/nus-3d.py', '../_base_/default_runtime.py']
 # Global
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
-point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]  #[x_min, y_min, z_min, x_max, y_max, z_max]
 # For nuScenes we usually do 10-class detection
 class_names = [
     'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
@@ -39,20 +39,20 @@ grid_config = {
 
 voxel_size = [0.1, 0.1, 0.2]
 
-numC_Trans = 80
+numC_Trans = 80  # # ??
 
 model = dict(
     type='BEVDet',
     img_backbone=dict(
         pretrained='torchvision://resnet50',
         type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(2, 3),
-        frozen_stages=-1,
+        depth=50,  # ResNet-50
+        num_stages=4,  # 骨干网络由四个阶段构成
+        out_indices=(2, 3),  # 第三层和第四层的特征图作为模型的输出
+        frozen_stages=-1,  # 所有层都应该被冻结
         norm_cfg=dict(type='BN', requires_grad=True),
         norm_eval=False,
-        with_cp=True,
+        with_cp=True,  # Checkpoint 某些位置保存中间结果
         style='pytorch'),
     img_neck=dict(
         type='CustomFPN',
@@ -66,7 +66,7 @@ model = dict(
         grid_config=grid_config,
         input_size=data_config['input_size'],
         in_channels=512,
-        out_channels=numC_Trans,
+        out_channels=numC_Trans,  # ？？ 80
         downsample=16),
     img_bev_encoder_backbone=dict(
         type='CustomResNet',
@@ -87,18 +87,18 @@ model = dict(
             dict(num_class=2, class_names=['motorcycle', 'bicycle']),
             dict(num_class=2, class_names=['pedestrian', 'traffic_cone']),
         ],
+        # 处理所有任务的输出，包括位置回归(reg)，高度(height)，物体尺寸(dim)，旋转角度(rot)和速度(vel)
         common_heads=dict(
-            reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
-        share_conv_channel=64,
+            reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),         share_conv_channel=64,
         bbox_coder=dict(
             type='CenterPointBBoxCoder',
-            pc_range=point_cloud_range[:2],
-            post_center_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
+            pc_range=point_cloud_range[:2],  # 点云的 x, y 范围
+            post_center_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],  # 目标框的范围
             max_num=500,
             score_threshold=0.1,
-            out_size_factor=8,
+            out_size_factor=8,  # 目标框的尺寸与输入 BEV 图像的比例
             voxel_size=voxel_size[:2],
-            code_size=9),
+            code_size=9),  # 中心点坐标、宽度、高度、朝向角度、顶点坐标偏移量
         separate_head=dict(
             type='SeparateHead', init_bias=-2.19, final_kernel=3),
         loss_cls=dict(type='GaussianFocalLoss', reduction='mean'),
@@ -108,21 +108,21 @@ model = dict(
     train_cfg=dict(
         pts=dict(
             point_cloud_range=point_cloud_range,
-            grid_size=[1024, 1024, 40],
-            voxel_size=voxel_size,
-            out_size_factor=8,
-            dense_reg=1,
+            grid_size=[1024, 1024, 40],  # 每个维度的体素数目
+            voxel_size=voxel_size,  # 体素大小[x_size, y_size, z_size]
+            out_size_factor=8,  # 每个像素对应8个点云体素
+            dense_reg=1,  # 稠密的回归目标 每个点云体素都进行回归
             gaussian_overlap=0.1,
             max_objs=500,
             min_radius=2,
-            code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2])),
+            code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2])),  # 回归损失的权重系数
     test_cfg=dict(
         pts=dict(
             pc_range=point_cloud_range[:2],
             post_center_limit_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
             max_per_img=500,
             max_pool_nms=False,
-            min_radius=[4, 12, 10, 1, 0.85, 0.175],
+            min_radius=[4, 12, 10, 1, 0.85, 0.175],  # 半径阈值
             score_threshold=0.1,
             out_size_factor=8,
             voxel_size=voxel_size[:2],

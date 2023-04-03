@@ -10,15 +10,17 @@ from mmcv.runner import load_checkpoint, wrap_fp16_model
 from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_detector
 from tools.misc.fuse_conv_bn import fuse_module
-
+'''
+计算推理效率
+'''
 
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet benchmark a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--samples', default=2000, help='samples to benchmark')
+    parser.add_argument('--samples', default=81, help='samples to benchmark')
     parser.add_argument(
-        '--log-interval', default=50, help='interval of logging')
+        '--log-interval', default=30, help='interval of logging')
     parser.add_argument(
         '--fuse-conv-bn',
         action='store_true',
@@ -96,6 +98,7 @@ def main():
             fps = (i + 1 - num_warmup) / pure_inf_time
             print(f'Overall fps: {fps:.1f} img / s')
             break
+
 
 
 if __name__ == '__main__':

@@ -11,14 +11,16 @@ from mmcv.runner import load_checkpoint
 from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_detector
 
-
+'''
+计算view_transformer算法的内存消耗和计算效率
+'''
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet benchmark a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--samples', default=1000, help='samples to benchmark')
+    parser.add_argument('--samples', default=81, help='samples to benchmark')
     parser.add_argument(
-        '--log-interval', default=50, help='interval of logging')
+        '--log-interval', default=20, help='interval of logging')
     parser.add_argument(
         '--mem-only',
         action='store_true',
@@ -36,6 +38,9 @@ def main():
 
     cfg = Config.fromfile(args.config)
     # set cudnn_benchmark
+    '''
+    也就是在每一个卷积层中测试 cuDNN 提供的所有卷积实现算法，然后选择最快的那个。这样在模型启动的时候，只要额外多花一点点预处理时间，就可以较大幅度地减少训练时间。
+    '''
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
     cfg.model.pretrained = None
@@ -62,7 +67,7 @@ def main():
     model.eval()
 
     # the first several iterations may be very slow so skip them
-    num_warmup = 100
+    num_warmup = 5
     pure_inf_time = 0
     D = model.module.img_view_transformer.D
     out_channels = model.module.img_view_transformer.out_channels
@@ -84,12 +89,12 @@ def main():
         if i == 0:
             precomputed_memory_allocated = 0.0
             if view_transformer.accelerate:
-                start_mem_allocated = torch.cuda.memory_allocated()
+                start_mem_allocated = torch.cuda.memory_allocated()  # 返回GPU 上已分配的字节数
                 view_transformer.pre_compute(input)
                 end_mem_allocated = torch.cuda.memory_allocated()
                 precomputed_memory_allocated = \
                     end_mem_allocated - start_mem_allocated
-                ref_max_mem_allocated = torch.cuda.max_memory_allocated()
+                ref_max_mem_allocated = torch.cuda.max_memory_allocated()  # 运行期间使用过的 GPU 内存的最大值
                 # occupy the memory
                 size = (ref_max_mem_allocated - end_mem_allocated) // 4
                 occupy_tensor = torch.zeros(
@@ -114,7 +119,7 @@ def main():
                 return
 
         torch.cuda.synchronize()
-        start_time = time.perf_counter()
+        start_time = time.perf_counter()  # 返回性能计数器的值
         with torch.no_grad():
             view_transformer.view_transform(input, depth, tran_feat)[0]
         torch.cuda.synchronize()

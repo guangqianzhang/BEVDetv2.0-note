@@ -77,9 +77,10 @@ def create_nuscenes_infos(root_path,
         print('test scene: {}'.format(len(train_scenes)))
     else:
         print('train scene: {}, val scene: {}'.format(
-            len(train_scenes), len(val_scenes)))
+            len(train_scenes), len(val_scenes)))   #  train scene: 139, val scene: 31
+    nusc.sample = nusc.sample[:6743]
     train_nusc_infos, val_nusc_infos = _fill_trainval_infos(
-        nusc, train_scenes, val_scenes, test, max_sweeps=max_sweeps)
+        nusc, train_scenes, val_scenes, test, max_sweeps=max_sweeps) # 5512  1231
 
     metadata = dict(version=version)
     if test:
@@ -134,6 +135,10 @@ def get_available_scenes(nusc):
                 scene_not_exist = True
                 break
             else:
+                # >>>>>>>>>>>>>>>>>>>>>>>>>
+                if not os.path.exists(lidar_path):
+                    scene_not_exist=True
+                # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 break
         if scene_not_exist:
             continue
@@ -270,7 +275,7 @@ def _fill_trainval_infos(nusc,
         else:
             val_nusc_infos.append(info)
 
-    return train_nusc_infos, val_nusc_infos
+    return train_nusc_infos, val_nusc_infos # 5512  1231
 
 
 def obtain_sensor2top(nusc,

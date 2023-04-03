@@ -323,7 +323,7 @@ class CenterHead(BaseModule):
 
         for num_cls in num_classes:
             heads = copy.deepcopy(common_heads)
-            heads.update(dict(heatmap=(num_cls, num_heatmap_convs)))
+            heads.update(dict(heatmap=(num_cls, num_heatmap_convs)))  # 物体在输入图像中的存在位置
             separate_head.update(
                 in_channels=share_conv_channel, heads=heads, num_cls=num_cls)
             self.task_heads.append(builder.build_head(separate_head))

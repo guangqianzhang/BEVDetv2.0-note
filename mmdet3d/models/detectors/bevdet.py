@@ -54,7 +54,7 @@ class BEVDet(CenterPoint):
     def extract_img_feat(self, img, img_metas, **kwargs):
         """Extract features of images."""
         x = self.image_encoder(img[0])
-        x, depth = self.img_view_transformer([x] + img[1:7])
+        x, depth = self.img_view_transformer([x] + img[1:7]) #  img的构成
         x = self.bev_encoder(x)
         return [x], depth
 

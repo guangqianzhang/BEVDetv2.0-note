@@ -48,13 +48,13 @@ class CustomResNet(nn.Module):
                 ])
                 layers.append(nn.Sequential(*layer))
         elif block_type == 'Basic':
-            curr_numC = numC_input
-            for i in range(len(num_layer)):
+            curr_numC = numC_input  # 80
+            for i in range(len(num_layer)):  # [2,2,2] 0 1 2
                 layer = [
                     BasicBlock(
-                        curr_numC,
-                        num_channels[i],
-                        stride=stride[i],
+                        curr_numC,  # 80
+                        num_channels[i],  # 160 320 640
+                        stride=stride[i],  # 2 2 2
                         downsample=nn.Conv2d(curr_numC, num_channels[i], 3,
                                              stride[i], 1),
                         norm_cfg=norm_cfg)
@@ -74,11 +74,11 @@ class CustomResNet(nn.Module):
     def forward(self, x):
         feats = []
         x_tmp = x
-        for lid, layer in enumerate(self.layers):
+        for lid, layer in enumerate(self.layers):  # 3
             if self.with_cp:
                 x_tmp = checkpoint.checkpoint(layer, x_tmp)
             else:
                 x_tmp = layer(x_tmp)
             if lid in self.backbone_output_ids:
-                feats.append(x_tmp)
+                feats.append(x_tmp)  #  160 64x64/320x32x32 /640x16x16
         return feats

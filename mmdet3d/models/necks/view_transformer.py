@@ -113,7 +113,7 @@ class LSSViewTransformer(BaseModule):
                 augmentation.
             post_trans (torch.Tensor): Translation in camera coordinate system
                 derived from image view augmentation in shape (B, N_cams, 3).
-
+            bda 数据增强矩阵
         Returns:
             torch.tensor: Point coordinates in shape
                 (B, N_cams, D, ownsample, 3)
@@ -172,10 +172,10 @@ class LSSViewTransformer(BaseModule):
             ]).to(feat)
             dummy = torch.cat(dummy.unbind(dim=2), 1)
             return dummy
-        feat = feat.permute(0, 1, 3, 4, 2)
+        feat = feat.permute(0, 1, 3, 4, 2) # 1x6x16x44x80
         bev_feat_shape = (depth.shape[0], int(self.grid_size[2]),
                           int(self.grid_size[1]), int(self.grid_size[0]),
-                          feat.shape[-1])  # (B, Z, Y, X, C)
+                          feat.shape[-1])  # (B, Z, Y, X, C) 1 1 128 128 80
         bev_feat = bev_pool_v2(depth, feat, ranks_depth, ranks_feat, ranks_bev,
                                bev_feat_shape, interval_starts,
                                interval_lengths)
@@ -251,7 +251,7 @@ class LSSViewTransformer(BaseModule):
 
     def view_transform_core(self, input, depth, tran_feat):
         B, N, C, H, W = input[0].shape
-
+        # dep 1x6x59x16x44x3  tran: 6x80x16x44
         # Lift-Splat
         if self.accelerate:
             feat = tran_feat.view(B, N, self.out_channels, H, W)
@@ -267,7 +267,7 @@ class LSSViewTransformer(BaseModule):
 
             bev_feat = bev_feat.squeeze(2)
         else:
-            coor = self.get_lidar_coor(*input[1:7])
+            coor = self.get_lidar_coor(*input[1:7]) # 1x6x59x16x44x3 计算在 LIDAR 坐标系中的视锥体顶点位置
             bev_feat = self.voxel_pooling_v2(
                 coor, depth.view(B, N, self.D, H, W),
                 tran_feat.view(B, N, self.out_channels, H, W))
@@ -290,12 +290,13 @@ class LSSViewTransformer(BaseModule):
         """
         x = input[0]
         B, N, C, H, W = x.shape
-        x = x.view(B * N, C, H, W)
-        x = self.depth_net(x)
+        x = x.view(B * N, C, H, W)  # 把6个相机的特征整合
+        x = self.depth_net(x) # 512，139（ self.D + self.out_channels）， 1x1的conv
 
-        depth_digit = x[:, :self.D, ...]
-        tran_feat = x[:, self.D:self.D + self.out_channels, ...]
+        depth_digit = x[:, :self.D, ...]  # 深度网格 第二个维度的前D个作为深度维，进行softmax
+        tran_feat = x[:, self.D:self.D + self.out_channels, ...] # 深度后作为输出特征
         depth = depth_digit.softmax(dim=1)
+        # depth: torch.Size([6, 59, 16, 44])  feat :torch.Size([6, 80, 16, 44])
         return self.view_transform(input, depth, tran_feat)
 
     def get_mlp_input(self, rot, tran, intrin, post_rot, post_tran, bda):

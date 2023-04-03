@@ -154,29 +154,31 @@ class CustomFPN(BaseModule):
     def forward(self, inputs):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
-
+        # 0:6*1024*16*44
+        # 1:6*2048*8*22
         # build laterals
         laterals = [
             lateral_conv(inputs[i + self.start_level])
             for i, lateral_conv in enumerate(self.lateral_convs)
         ]
-
+        # 0:6*512*16*44
+        # 1:6*512*8*22
         # build top-down path
-        used_backbone_levels = len(laterals)
-        for i in range(used_backbone_levels - 1, 0, -1):
+        used_backbone_levels = len(laterals) # 2
+        for i in range(used_backbone_levels - 1, 0, -1): # [1]
             # In some cases, fixing `scale factor` (e.g. 2) is preferred, but
             #  it cannot co-exist with `size` in `F.interpolate`.
             if 'scale_factor' in self.upsample_cfg:
                 laterals[i - 1] += F.interpolate(laterals[i],
                                                  **self.upsample_cfg)
             else:
-                prev_shape = laterals[i - 1].shape[2:]
+                prev_shape = laterals[i - 1].shape[2:] # 16*44
                 laterals[i - 1] += F.interpolate(
                     laterals[i], size=prev_shape, **self.upsample_cfg)
 
         # build outputs
         # part 1: from original levels
-        outs = [self.fpn_convs[i](laterals[i]) for i in self.out_ids]
+        outs = [self.fpn_convs[i](laterals[i]) for i in self.out_ids]  #i=[0]  6*512*16*44
         # part 2: add extra levels
         if self.num_outs > len(outs):
             # use max pool to get more levels on top of outputs

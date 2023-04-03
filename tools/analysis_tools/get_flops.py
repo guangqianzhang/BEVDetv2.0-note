@@ -5,7 +5,9 @@ import torch
 from mmcv import Config, DictAction
 
 from mmdet3d.models import build_model
-
+'''
+计算模型浮点数
+'''
 try:
     from mmcv.cnn import get_model_complexity_info
 except ImportError:
@@ -46,8 +48,11 @@ def construct_input(input_shape):
     rot = torch.cat([rot for _ in range(6)], axis=0).view(1, 6, 3, 3)
 
     input = dict(img_inputs=[
-        torch.ones(()).new_empty((1, 6, 3, *input_shape)).cuda(), rot,
-        torch.ones((1, 6, 3)).cuda(), rot, rot,
+        torch.ones(()).new_empty((1, 6, 3, *input_shape)).cuda(),
+        rot,
+        torch.ones((1, 6, 3)).cuda(),
+        rot,
+        rot,
         torch.ones((1, 6, 3)).cuda(),
         torch.eye(3).float().cuda().view(1, 3, 3)
     ])
